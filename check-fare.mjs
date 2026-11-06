@@ -189,8 +189,13 @@ if (new Date() >= flightDay) {
   console.log('Đã tới ngày bay, ngừng kiểm tra.');
   process.exit(0);
 }
+// --for-min N: chạy liên tục N phút rồi thoát (dùng trên GitHub Actions)
+const forIdx = args.indexOf('--for-min');
+const stopAt = forIdx >= 0 ? Date.now() + Number(args[forIdx + 1]) * 60_000 : Infinity;
 while (true) {
+  const started = Date.now();
   await checkOnce();
-  if (ONCE || new Date() >= flightDay) break;
-  await new Promise((r) => setTimeout(r, CFG.intervalMin * 60_000));
+  const next = started + CFG.intervalMin * 60_000; // giữ đúng nhịp 30 phút tính từ lúc bắt đầu
+  if (ONCE || next >= stopAt || new Date(next) >= flightDay) break;
+  await new Promise((r) => setTimeout(r, next - Date.now()));
 }
