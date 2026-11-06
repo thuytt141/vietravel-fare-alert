@@ -58,6 +58,8 @@ async function getFares() {
   try {
     await page.goto('https://booking.vietravelairlines.com/vi', { waitUntil: 'networkidle', timeout: 60_000 });
     await page.click('#search-type-oneway');
+    // Máy chủ ở nước ngoài có thể mặc định USD -> luôn chọn VND
+    await page.selectOption('#criteria-currency-select', { label: 'VND' }).catch(() => {});
 
     await page.locator('#criteria-departure-single-select-0-input input.vs__search').click();
     await page.locator(`#criteria-departure-single-select-0 #airport-option-${CFG.from}`).click();
@@ -100,10 +102,12 @@ async function getFares() {
         { timeout: 15_000 },
       ).catch(() => {}); // 2 hạng trùng tổng thì text không đổi
       await page.waitForTimeout(500);
+      const totalText = await totalEl.innerText();
+      if (!/VND/i.test(totalText)) throw new Error(`Tổng số tiền không phải VND: "${totalText.trim()}"`);
       fares.push({
         name: name.replace(/[\s​]+/g, ' ').trim(),
         fare: toNumber(amount),
-        price: toNumber(await totalEl.innerText()), // tổng số tiền
+        price: toNumber(totalText), // tổng số tiền
       });
     }
     return { flightNo, fares };
