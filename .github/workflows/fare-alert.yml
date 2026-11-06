@@ -1,16 +1,23 @@
 name: Vietravel fare alert
 
+# Mỗi lần chạy, script tự kiểm tra giá liên tục ~5,5 giờ, đúng 30 phút/lần.
+# Lịch GitHub hay trễ, nên chỉ dùng để khởi động lại mỗi 5 giờ (trễ cũng không mất lượt báo).
 on:
   schedule:
-    - cron: '*/30 * * * *'   # mỗi 30 phút (giờ UTC; GitHub có thể chạy trễ vài phút)
+    - cron: '0 */5 * * *'
   push:
     branches: [main]        # chạy ngay mỗi lần cập nhật code
   workflow_dispatch:          # cho phép bấm chạy tay trong tab Actions
 
+# Chỉ 1 lần chạy tại một thời điểm: lần mới bắt đầu thì dừng lần cũ (tránh báo trùng)
+concurrency:
+  group: fare-alert
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 350
     env:
       TZ: Asia/Ho_Chi_Minh
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -30,7 +37,7 @@ jobs:
 
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
-      - run: node check-fare.mjs --once
+      - run: node check-fare.mjs --for-min 330
 
       - uses: actions/cache/save@v4
         if: always() && hashFiles('state.json') != ''
