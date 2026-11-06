@@ -14,7 +14,7 @@ const CFG = {
   to: 'CXR',
   date: '2026-11-19',
   time: '07:15',
-  maxPrice: 1_100_000, // báo khi TỔNG SỐ TIỀN (gồm thuế, phí) của 1 hạng vé <= mức này
+  maxPrice: 1_100_000, // mốc đánh dấu 🔥 khi TỔNG SỐ TIỀN (gồm thuế, phí) <= mức này; lần nào cũng gửi báo giá
   intervalMin: 30,
 };
 
@@ -116,30 +116,46 @@ async function getFares() {
   }
 }
 
+// Mỗi lần kiểm tra đều gửi báo giá; so sánh với lần trước nhờ state.json
 async function checkOnce() {
+  const header = `${CFG.from}→${CFG.to} ${CFG.time} ngày 19/11`;
   try {
     const res = await getFares();
-    if (!res) return log(`Không thấy chuyến ${CFG.time} ngày ${CFG.date}`);
-    if (!res.fares.length) return log(`${res.flightNo} ${CFG.time}: hết vé`);
+    if (!res) {
+      log(`Không thấy chuyến ${CFG.time} ngày ${CFG.date}`);
+      return notify(`Báo giá ${header}`, 'Không thấy chuyến 07:15 trên trang kết quả.');
+    }
+    if (!res.fares.length) {
+      log(`${res.flightNo} ${CFG.time}: hết vé`);
+      return notify(`Báo giá ${header}`, `${res.flightNo}: hết vé.`);
+    }
 
     log(`${res.flightNo} ${CFG.time} (tổng số tiền):`,
       res.fares.map((f) => `${f.name} ${fmt(f.price)} (giá vé ${fmt(f.fare)})`).join(' | '));
     const cheapest = res.fares.reduce((a, b) => (b.price < a.price ? b : a));
     const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
 
-    // Báo khi giá chạm mức mong muốn, hoặc giảm thêm so với lần báo trước
-    if (cheapest.price <= CFG.maxPrice && (!state.lastAlert || cheapest.price < state.lastAlert)) {
-      await notify('Giá vé đã giảm!',
-        `${res.flightNo} ${CFG.from}→${CFG.to} ${CFG.time} 19/11\n${cheapest.name}: tổng ${fmt(cheapest.price)} (giá vé ${fmt(cheapest.fare)})\n`
-        + 'https://booking.vietravelairlines.com/vi');
-      log(`>>> BÁO tổng số tiền: ${cheapest.name} ${fmt(cheapest.price)} <= ${fmt(CFG.maxPrice)}`);
-      state.lastAlert = cheapest.price;
-    } else if (cheapest.price > CFG.maxPrice) {
-      delete state.lastAlert; // giá tăng lại -> lần sau giảm sẽ báo tiếp
+    let change = '';
+    if (state.lastCheapest) {
+      const diff = cheapest.price - state.lastCheapest;
+      change = diff < 0 ? ` ▼ giảm ${fmt(-diff)}` : diff > 0 ? ` ▲ tăng ${fmt(diff)}` : ' (không đổi)';
     }
+    const hit = cheapest.price <= CFG.maxPrice;
+    const lines = [
+      `${res.flightNo} · Tổng số tiền 1 người lớn:`,
+      ...res.fares.map((f) => `• ${f.name}: ${fmt(f.price)} (giá vé ${fmt(f.fare)})`),
+      '',
+      `Rẻ nhất: ${fmt(cheapest.price)}${change}`,
+      hit ? `✅ ĐÃ ≤ ${fmt(CFG.maxPrice)} — đặt ngay!` : `Mục tiêu: ≤ ${fmt(CFG.maxPrice)}`,
+      'https://booking.vietravelairlines.com/vi',
+    ];
+    await notify(`${hit ? '🔥 ' : ''}Báo giá ${header}`, lines.join('\n'));
+
+    state.lastCheapest = cheapest.price;
     fs.writeFileSync(STATE, JSON.stringify(state));
   } catch (e) {
     log('LỖI:', e.message);
+    await notify(`Báo giá ${header}`, `⚠️ Lần kiểm tra này bị lỗi: ${e.message.split(' (ảnh:')[0]}`);
   }
 }
 

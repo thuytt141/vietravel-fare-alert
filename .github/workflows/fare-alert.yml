@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 22
 
-      # Nhớ mức giá đã báo giữa các lần chạy, để không báo lặp
+      # Nhớ giá lần trước để báo tăng/giảm
       - uses: actions/cache/restore@v4
         with:
           path: state.json
