@@ -1,0 +1,44 @@
+name: Vietravel fare alert
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # mỗi 30 phút (giờ UTC; GitHub có thể chạy trễ vài phút)
+  workflow_dispatch:          # cho phép bấm chạy tay trong tab Actions
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Asia/Ho_Chi_Minh
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Nhớ mức giá đã báo giữa các lần chạy, để không báo lặp
+      - uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: fare-state-${{ github.run_id }}
+          restore-keys: fare-state-
+
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: node check-fare.mjs --once
+
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('state.json') != ''
+        with:
+          path: state.json
+          key: fare-state-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('debug/**') != ''
+        with:
+          name: debug-screenshots
+          path: debug/
+          retention-days: 3

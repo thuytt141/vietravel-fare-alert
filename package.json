@@ -1,0 +1,12 @@
+{
+  "name": "vietravel-fare-alert",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "once": "node check-fare.mjs --once",
+    "watch": "node check-fare.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}
