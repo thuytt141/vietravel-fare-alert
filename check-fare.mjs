@@ -131,7 +131,7 @@ async function checkOnce() {
     }
 
     log(`${res.flightNo} ${CFG.time} (tổng số tiền):`,
-      res.fares.map((f) => `${f.name} ${fmt(f.price)} (giá vé ${fmt(f.fare)})`).join(' | '));
+      res.fares.map((f) => `${f.name} ${fmt(f.price)}`).join(' | '));
     const cheapest = res.fares.reduce((a, b) => (b.price < a.price ? b : a));
     const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
 
@@ -142,10 +142,10 @@ async function checkOnce() {
     }
     const hit = cheapest.price <= CFG.maxPrice;
     const lines = [
-      `${res.flightNo} · Tổng số tiền 1 người lớn:`,
-      ...res.fares.map((f) => `• ${f.name}: ${fmt(f.price)} (giá vé ${fmt(f.fare)})`),
+      `${res.flightNo} · TỔNG SỐ TIỀN (đã gồm thuế, phí) · 1 người lớn:`,
+      ...res.fares.map((f) => `• ${f.name}: ${fmt(f.price)}`),
       '',
-      `Rẻ nhất: ${fmt(cheapest.price)}${change}`,
+      `Tổng rẻ nhất: ${fmt(cheapest.price)}${change}`,
       hit ? `✅ ĐÃ ≤ ${fmt(CFG.maxPrice)} — đặt ngay!` : `Mục tiêu: ≤ ${fmt(CFG.maxPrice)}`,
       'https://booking.vietravelairlines.com/vi',
     ];
