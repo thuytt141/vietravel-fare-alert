@@ -181,7 +181,7 @@ async function checkOnce() {
 
 if (args.includes('--test-telegram')) {
   await notify('Thử kết nối', 'Bot báo giá vé Vietravel đã hoạt động.');
-  process.exit(0);
+  process.exit();
 }
 
 const flightDay = new Date(`${CFG.date}T00:00:00+07:00`);

@@ -3,6 +3,8 @@ name: Vietravel fare alert
 on:
   schedule:
     - cron: '*/30 * * * *'   # mỗi 30 phút (giờ UTC; GitHub có thể chạy trễ vài phút)
+  push:
+    branches: [main]        # chạy ngay mỗi lần cập nhật code
   workflow_dispatch:          # cho phép bấm chạy tay trong tab Actions
 
 jobs:
