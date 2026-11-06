@@ -1,6 +1,6 @@
 name: Vietravel fare alert
 
-# Mỗi lần chạy, script tự kiểm tra giá liên tục ~5,5 giờ, đúng 30 phút/lần.
+# Mỗi lần chạy, script tự kiểm tra giá liên tục ~5,5 giờ, đúng 60 phút/lần.
 # Lịch GitHub hay trễ, nên chỉ dùng để khởi động lại mỗi 5 giờ (trễ cũng không mất lượt báo).
 on:
   schedule:

@@ -1,6 +1,6 @@
 // Báo giá vé Vietravel Airlines: Hà Nội (HAN) -> Nha Trang (CXR), 19/11/2026, chuyến 07:15
 // Chạy 1 lần:      node check-fare.mjs --once
-// Chạy liên tục:   node check-fare.mjs            (mỗi 30 phút, tự dừng khi tới ngày bay)
+// Chạy liên tục:   node check-fare.mjs            (mỗi 60 phút, tự dừng khi tới ngày bay)
 // Xem trình duyệt: thêm --headed
 // Thử gửi Telegram: node check-fare.mjs --test-telegram
 // Telegram: đặt biến môi trường TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID
@@ -15,7 +15,7 @@ const CFG = {
   date: '2026-11-19',
   time: '07:15',
   maxPrice: 1_100_000, // mốc đánh dấu 🔥 khi TỔNG SỐ TIỀN (gồm thuế, phí) <= mức này; lần nào cũng gửi báo giá
-  intervalMin: 30,
+  intervalMin: 60,
 };
 
 const args = process.argv.slice(2);
@@ -195,7 +195,7 @@ const stopAt = forIdx >= 0 ? Date.now() + Number(args[forIdx + 1]) * 60_000 : In
 while (true) {
   const started = Date.now();
   await checkOnce();
-  const next = started + CFG.intervalMin * 60_000; // giữ đúng nhịp 30 phút tính từ lúc bắt đầu
+  const next = started + CFG.intervalMin * 60_000; // giữ đúng nhịp intervalMin tính từ lúc bắt đầu
   if (ONCE || next >= stopAt || new Date(next) >= flightDay) break;
   await new Promise((r) => setTimeout(r, next - Date.now()));
 }
