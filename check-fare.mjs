@@ -33,14 +33,30 @@ const log = (...a) => {
 };
 // Gửi Telegram nếu có TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID; trên Mac hiện thêm thông báo hệ thống
 async function notify(title, msg) {
-  const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chatId } = process.env;
-  if (token && chatId) {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: `✈️ ${title}\n${msg}` }),
-    }).catch((e) => ({ ok: false, statusText: e.message }));
-    if (!res.ok) log('Gửi Telegram lỗi:', res.status ?? '', res.statusText ?? '');
+  const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const chatId = (process.env.TELEGRAM_CHAT_ID || '').trim();
+  const fail = (why) => {
+    log('Gửi Telegram lỗi:', why);
+    if (process.env.GITHUB_ACTIONS) console.log(`::error title=Telegram::${why}`);
+    process.exitCode = 1; // workflow hiện đỏ để dễ thấy
+  };
+  if (!token || !chatId) {
+    if (process.env.GITHUB_ACTIONS) {
+      fail(`Thiếu secret: ${[!token && 'TELEGRAM_BOT_TOKEN', !chatId && 'TELEGRAM_CHAT_ID'].filter(Boolean).join(', ')}`);
+    }
+  } else {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: `✈️ ${title}\n${msg}` }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!body.ok) fail(`Telegram trả lỗi ${res.status}: ${body.description || res.statusText}`);
+      else log('Đã gửi Telegram');
+    } catch (e) {
+      fail(e.message);
+    }
   }
   if (process.platform === 'darwin') {
     const esc = (s) => s.replace(/["'\\]/g, '');
